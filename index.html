@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HL Steel 20th Anniversary Dinner · 菜单选择</title>
+<style>
+  :root{
+    --gold:#e8c86a;
+    --bg:#0e1014;
+    --panel:#15181f;
+    --panel-2:#1a1e27;
+    --line:rgba(255,255,255,.07);
+    --txt:#e8e4dc;
+    --muted:#8d8a83;
+    --nv:#e07a5f;
+    --vg:#5fbf7a;
+    --header-h:130px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 18% -10%, rgba(201,162,39,.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(59,130,196,.08), transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ====== Fixed 顶栏 ====== */
+  .sticky-head{
+    position:fixed; top:0; left:0; right:0; z-index:999;
+    background:rgba(14,16,20,.96);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(232,200,106,.22);
+    padding:10px 24px 10px;
+  }
+  .topbar{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:20px; flex-wrap:nowrap; max-width:1700px; margin:0 auto;
+  }
+  .brand{min-width:0; flex:1}
+
+  .brand h1{font-size:18px; font-weight:800; letter-spacing:.4px; line-height:1.2; margin-bottom:8px}
+  .brand h1 sup{font-size:10px; color:var(--gold)}
+
+  /* Details + Preset 同一行 */
+  .brand-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+
+  .details-wrap{position:relative; display:inline-block}
+  .details-toggle{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(232,200,106,.08);
+    border:1px solid rgba(232,200,106,.28);
+    color:#c8b98d;
+    padding:4px 12px; border-radius:20px;
+    font-family:inherit; font-size:11px; font-weight:700; letter-spacing:.3px;
+    cursor:pointer; transition:.18s;
+  }
+  .details-toggle:hover{background:rgba(232,200,106,.14); color:var(--gold); border-color:var(--gold)}
+  .details-toggle .tri{display:inline-block; font-size:8px; transition:transform .2s; transform:translateY(-1px)}
+  .details-toggle.open .tri{transform:rotate(180deg) translateY(1px)}
+
+  .details-panel{
+    position:absolute; top:calc(100% + 8px); left:0;
+    min-width:340px; max-width:min(520px,90vw);
+    background:rgba(20,23,29,.98);
+    border:1px solid rgba(232,200,106,.35);
+    border-radius:14px;
+    padding:8px 16px;
+    font-size:11.5px; color:#cfcabd;
+    box-shadow:0 14px 40px rgba(0,0,0,.6);
+    z-index:1200;
+  }
+  .details-panel .detail-row{
+    display:flex; align-items:baseline; gap:10px;
+    padding:6px 0; line-height:1.5;
+    border-bottom:1px dashed rgba(255,255,255,.06);
+  }
+  .details-panel .detail-row:last-child{border-bottom:none}
+  .details-panel .detail-row b{color:#c8b98d; font-weight:600; min-width:115px; flex:none}
+  .details-panel .detail-row span{color:#e8e4dc}
+
+  /* Preset Bar 紧靠 Details 右边 */
+  .preset-bar{
+    display:flex; gap:4px; flex-wrap:wrap;
+    background:rgba(255,255,255,.03); padding:3px 8px; border-radius:20px;
+    border:1px solid var(--line);
+  }
+  .preset-btn{
+    background:transparent; border:1px solid rgba(232,200,106,.25);
+    color:#c8b98d; padding:3px 10px; border-radius:14px;
+    font-family:inherit; font-size:10.5px; font-weight:700; letter-spacing:.2px;
+    cursor:pointer; transition:.18s;
+  }
+  .preset-btn:hover{background:rgba(232,200,106,.12); color:var(--gold); border-color:var(--gold)}
+  .preset-btn.active{background:var(--gold); color:#14171d; border-color:var(--gold)}
+  .preset-btn.loading{opacity:.5; pointer-events:none}
+
+  .total-box{text-align:right; flex:none}
+  .total-label{font-size:10px; letter-spacing:1.8px; color:var(--muted); text-transform:uppercase}
+  .total-value{
+    font-size:26px; font-weight:900; line-height:1.15;
+    color:var(--gold); font-variant-numeric:tabular-nums;
+    text-shadow:0 0 28px rgba(232,200,106,.35);
+    transition:transform .18s ease;
+  }
+  .total-value.bump{transform:scale(1.045)}
+  .total-sub{font-size:10.5px; color:var(--muted); margin-top:2px; line-height:1.6; max-width:560px}
+  .total-sub b{color:#b9ad8a; font-weight:700}
+
+  /* ====== 主体 ====== */
+  .app-layout{
+    max-width:1700px; margin:0 auto;
+    padding:calc(var(--header-h) + 16px) 24px 40px;
+    display:grid;
+    grid-template-columns:minmax(0, 1.55fr) minmax(0, 1fr);
+    gap:18px;
+    align-items:start;
+  }
+
+  /* ====== 左栏：时间轴 ====== */
+  .timeline-side{
+    position:sticky;
+    top:calc(var(--header-h) + 16px);
+    display:flex; flex-direction:column; gap:12px;
+  }
+
+  .timeline-inner{
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+    border:1px solid var(--line); border-radius:20px;
+    padding:12px 14px 14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.18);
+  }
+
+  .timeline-head{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; flex-wrap:nowrap; margin-bottom:12px;
+  }
+  .timeline-head h3{
+    font-size:13px; font-weight:800; letter-spacing:.3px;
+    display:flex; align-items:center; gap:8px;
+    white-space:nowrap;
+  }
+  .timeline-head h3::before{
+    content:""; width:6px; height:6px; border-radius:50%; background:var(--gold);
+    box-shadow:0 0 10px var(--gold);
+  }
+
+  .cocktail-inline{
+    display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
+    padding:3px 10px; border-radius:20px;
+    background:rgba(142,68,173,.10); border:1px solid rgba(142,68,173,.30);
+  }
+  .cocktail-inline label{font-size:10.5px; font-weight:700; color:#c59fdc; letter-spacing:.2px; white-space:nowrap}
+  .cocktail-inline input{
+    width:50px; padding:3px 6px; border-radius:14px;
+    border:1px solid rgba(142,68,173,.5); background:rgba(255,255,255,.04);
+    color:var(--txt); font-family:inherit; font-size:11px; font-weight:800;
+    text-align:center; font-variant-numeric:tabular-nums; outline:none; transition:.15s;
+  }
+  .cocktail-inline input:focus{border-color:#b07bcd; box-shadow:0 0 0 3px rgba(142,68,173,.25)}
+  .cocktail-inline .hint{font-size:9.5px; color:var(--muted); white-space:nowrap}
+
+  .group-block{margin-bottom:14px}
+  .group-block:last-child{margin-bottom:0}
+
+  /* 每行 5 个 */
+  .slots{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+
+  .slot{
+    aspect-ratio:1; border-radius:16px;
+    display:flex; flex-direction:column;
+    align-items:stretch; justify-content:flex-start;
+    text-align:center; font-size:11px; line-height:1.2;
+    font-weight:600; position:relative;
+    border:1.5px dashed; cursor:pointer;
+    transition:transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    overflow:hidden; padding:0;
+  }
+  .slot.veg-slot{background:rgba(95,191,122,.06); border-color:rgba(95,191,122,.30); color:#a8d8b6}
+  .slot.nonveg-slot{background:rgba(224,122,95,.06); border-color:rgba(224,122,95,.30); color:#e8b3a4}
+  .slot:hover{transform:translateY(-2px)}
+  .slot.veg-slot:hover{border-color:var(--vg); background:rgba(95,191,122,.13)}
+  .slot.nonveg-slot:hover{border-color:var(--nv); background:rgba(224,122,95,.13)}
+  .slot.drag-over{
+    border-style:solid; box-shadow:0 0 0 2px currentColor inset;
+    transform:translateY(-2px) scale(1.03);
+  }
+  .slot.veg-slot.drag-over{background:rgba(95,191,122,.22)}
+  .slot.nonveg-slot.drag-over{background:rgba(224,122,95,.22)}
+
+  .slot-time{
+    font-size:11px; font-weight:900; letter-spacing:.3px;
+    text-align:center; padding:5px 4px 4px;
+    background:rgba(0,0,0,.30);
+    border-bottom:1px solid rgba(255,255,255,.05);
+    opacity:.95; flex:none;
+  }
+  .slot-body{
+    flex:1; display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    padding:6px 6px 8px; gap:6px; position:relative; min-height:0;
+  }
+  .slot.empty .slot-body .num{font-size:22px; font-weight:900; opacity:.35; letter-spacing:.5px}
+
+  /* ★ 图片从圆形改为方形 */
+  .slot .slot-ring{
+    width:68%; aspect-ratio:1; border-radius:10px; overflow:hidden;
+    border:2px solid rgba(255,255,255,.18); flex:none;
+  }
+  .slot .slot-ring img{width:100%; height:100%; display:block; object-fit:cover}
+
+  .slot .slot-name{
+    font-size:11px; font-weight:700; line-height:1.25;
+    padding:0 4px;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    word-break:break-word;
+    flex:none;
+  }
+  .slot .slot-remove{
+    position:absolute; top:5px; right:6px;
+    width:18px; height:18px; border-radius:50%;
+    background:rgba(0,0,0,.55); color:#ff9a7c;
+    font-size:12px; line-height:18px; text-align:center;
+    cursor:pointer; opacity:0; transition:.15s; font-weight:900; z-index:2;
+  }
+  .slot:hover .slot-remove{opacity:1}
+  .slot .slot-remove:hover{background:rgba(224,122,95,.9); color:#fff}
+
+  .save-bar{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:10px 12px; border-radius:12px;
+    background:rgba(232,200,106,.06); border:1px solid rgba(232,200,106,.20);
+  }
+  .save-bar label{font-size:11.5px; font-weight:700; color:#c8b98d}
+  .save-bar select{
+    padding:6px 12px; border-radius:20px;
+    border:1px solid rgba(232,200,106,.35); background:rgba(20,23,29,.9);
+    color:var(--txt); font-family:inherit; font-size:12px; font-weight:700;
+    outline:none; cursor:pointer;
+  }
+  .save-bar select:focus{border-color:var(--gold)}
+  .btn-save{
+    background:var(--gold); color:#14171d; border:none;
+    padding:7px 18px; border-radius:20px;
+    font-family:inherit; font-size:12px; font-weight:800; letter-spacing:.3px;
+    cursor:pointer; transition:.15s;
+  }
+  .btn-save:hover{background:#f0d57b; box-shadow:0 0 18px rgba(232,200,106,.4)}
+  .btn-save:active{transform:scale(.97)}
+  .reset-btn{
+    background:transparent; border:1px solid rgba(255,255,255,.12);
+    color:var(--muted); padding:7px 14px; border-radius:20px;
+    font-family:inherit; font-size:11.5px; font-weight:600; cursor:pointer;
+    transition:.15s; margin-left:auto;
+  }
+  .reset-btn:hover{border-color:rgba(224,122,95,.5); color:#ff9a7c}
+
+  /* ====== 右栏 ====== */
+  .menu-side{display:flex; flex-direction:column; gap:12px; min-width:0; position:relative}
+
+  .tab-bar{
+    position:sticky;
+    top:calc(var(--header-h) + 16px);
+    z-index:60;
+    display:flex; gap:10px; flex-wrap:wrap;
+    padding:8px 0;
+    background:linear-gradient(180deg, rgba(14,16,20,.98) 70%, rgba(14,16,20,0));
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .tab{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:9px 20px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel);
+    color:var(--muted); font-family:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; transition:.2s; letter-spacing:.2px;
+  }
+  .tab:hover{border-color:rgba(232,200,106,.4); color:var(--txt)}
+  .tab .dot{width:9px; height:9px; border-radius:50%; flex:none; transition:.2s}
+  .tab .count{
+    font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px;
+    background:rgba(255,255,255,.06); color:var(--muted); font-variant-numeric:tabular-nums;
+  }
+  .tab.active{
+    border-color:var(--gold); color:var(--txt);
+    background:linear-gradient(180deg,rgba(232,200,106,.12),rgba(232,200,106,.03));
+    box-shadow:0 0 0 1px rgba(232,200,106,.25), 0 8px 22px rgba(232,200,106,.10);
+  }
+  .tab.active .count{background:rgba(232,200,106,.2); color:var(--gold)}
+  .tab[data-tab="veg"] .dot{background:#2f5439}
+  .tab[data-tab="veg"].active .dot{background:var(--vg); box-shadow:0 0 12px var(--vg)}
+  .tab[data-tab="nonveg"] .dot{background:#5a4038}
+  .tab[data-tab="nonveg"].active .dot{background:var(--nv); box-shadow:0 0 12px var(--nv)}
+
+  .menu-panel{
+    background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+    border:1px solid var(--line); border-radius:20px; padding:16px 14px;
+  }
+  .panel-hint{font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.6}
+  .panel-hint b{color:var(--gold); font-weight:700}
+
+  .cat{margin-bottom:16px}
+  .cat-head{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:8px 0 10px; border-bottom:1px solid var(--line); margin-bottom:12px;
+  }
+  .cat-dot{width:8px; height:8px; border-radius:50%; flex:none}
+  .cat-head h3{font-size:13.5px; font-weight:700; letter-spacing:.2px}
+  .cat-head .badge{
+    font-size:10px; padding:2px 8px; border-radius:999px;
+    background:rgba(232,200,106,.14); color:var(--gold);
+    border:1px solid rgba(232,200,106,.28); font-weight:600; white-space:nowrap;
+  }
+
+  .dishes{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px}
+
+  .dish{
+    position:relative; display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:12px 8px 10px; border-radius:14px;
+    border:1px solid var(--line); background:var(--panel-2);
+    cursor:pointer; text-align:center;
+    transition:transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  .dish:hover{transform:translateY(-3px); border-color:rgba(232,200,106,.42); background:#1d222c}
+  .dish:active{transform:translateY(-1px) scale(.985)}
+  .dish.dragging{opacity:.4}
+
+  /* ★ 图片从圆形改为方形 */
+  .dish .ring{
+    width:64px; height:64px; border-radius:10px; overflow:hidden; flex:none;
+    border:2px solid rgba(255,255,255,.10);
+    transition:border-color .18s ease, box-shadow .18s ease;
+  }
+  .dish:hover .ring{border-color:rgba(232,200,106,.55); box-shadow:0 0 20px rgba(232,200,106,.25)}
+  .dish .ring img{width:100%; height:100%; display:block; object-fit:cover}
+
+  .dish .name{font-size:12px; font-weight:700; line-height:1.3}
+  .dish .detail{
+    font-size:10px; color:var(--muted); line-height:1.4;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .dish .price{font-size:11.5px; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums}
+  .dish .price em{font-style:normal; font-size:10px; font-weight:500; color:var(--muted)}
+  .dish .per{font-size:9.5px; color:#7d8b96; font-variant-numeric:tabular-nums}
+  .dish.placed{
+    border-color:rgba(95,191,122,.55);
+    background:linear-gradient(180deg,rgba(95,191,122,.12),rgba(95,191,122,.02));
+    box-shadow:0 0 0 1px rgba(95,191,122,.22), 0 6px 18px rgba(95,191,122,.08);
+  }
+  .dish.placed .ring{opacity:.72}
+  .dish.placed .name{color:#a8d8b6}
+  .dish .placed-badge{
+    position:absolute; top:6px; left:6px;
+    font-size:9px; padding:2px 7px; border-radius:20px;
+    background:rgba(95,191,122,.22); color:#a8d8b6;
+    border:1px solid rgba(95,191,122,.5); font-weight:700;
+    letter-spacing:.2px;
+  }
+
+  @media(max-width:1024px){
+    .app-layout{grid-template-columns:1fr}
+    .timeline-side{position:static}
+    .tab-bar{position:static}
+  }
+
+  .toast{
+    position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:rgba(20,23,29,.96); color:var(--txt);
+    padding:12px 22px; border-radius:30px;
+    border:1px solid rgba(232,200,106,.4);
+    font-size:13px; font-weight:600; letter-spacing:.2px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);
+    opacity:0; pointer-events:none; transition:.25s ease;
+    z-index:999; max-width:88vw; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  iframe#gasFrame{display:none; width:0; height:0; border:0}
+</style>
+</head>
+<body>
+
+<div class="sticky-head">
+  <header class="topbar">
+    <div class="brand">
+      <h1>HL Steel 20<sup>th</sup> Anniversary Dinner</h1>
+
+      <div class="brand-row">
+        <div class="details-wrap">
+          <button class="details-toggle" id="detailsToggle" type="button">
+            <span class="tri">▼</span>
+            <span>Details</span>
+          </button>
+          <div class="details-panel" id="detailsPanel" hidden>
+            <div class="detail-row"><b>Participant:</b><span>120 pax (113 pax + 7 backup)</span></div>
+            <div class="detail-row"><b>No. of Table:</b><span>15 Table</span></div>
+            <div class="detail-row"><b>Table Capacity:</b><span>8 pax / Table</span></div>
+            <div class="detail-row"><b>Serving Cycle:</b><span>25 minutes / Dish</span></div>
+            <div class="detail-row"><b>Vegetarian:</b><span>6 pax</span></div>
+            <div class="detail-row"><b>Allergy:</b><span>1 pax (Seafood with Shell)</span></div>
+            <div class="detail-row"><b>Flavor Profile:</b><span>Less Spicy</span></div>
+            <div class="detail-row"><b>White Rice:</b><span>Upon Request</span></div>
+          </div>
+        </div>
+
+        <div class="preset-bar" id="presetBar"></div>
+      </div>
+    </div>
+
+    <div class="total-box">
+      <div class="total-label">Estimated Total Price</div>
+      <div class="total-value" id="grandTotal">RM 0.00</div>
+      <div class="total-sub" id="totalSub">非素 RM 0.00 × 114 = RM 0.00 · 素食 RM 0.00 × 6 = RM 0.00 · Cocktail Section x 0 = RM 0.00</div>
+    </div>
+  </header>
+</div>
+
+<div class="app-layout">
+
+  <aside class="timeline-side">
+    <section class="timeline-inner">
+      <div class="timeline-head">
+        <h3>上菜时间轴 · Serving Timeline</h3>
+        <div class="cocktail-inline">
+          <label>🍹 Cocktail Section Pax（Slot 1–2）</label>
+          <input type="number" id="cocktailPaxInput" value="80" min="1" max="120" step="1">
+          <span class="hint">6:30–7:30pm</span>
+        </div>
+      </div>
+
+      <div class="group-block">
+        <div class="slots" id="vegSlots"></div>
+      </div>
+
+      <div class="group-block">
+        <div class="slots" id="nonvegSlots"></div>
+      </div>
+    </section>
+
+    <div class="save-bar">
+      <label>💾 Save to Preset</label>
+      <select id="presetSelect">
+        <option value="0">Preset 0</option>
+        <option value="1">Preset 1</option>
+        <option value="2">Preset 2</option>
+        <option value="3">Preset 3</option>
+        <option value="4">Preset 4</option>
+        <option value="5">Preset 5</option>
+      </select>
+      <button class="btn-save" id="savePresetBtn">Save</button>
+      <button class="reset-btn" id="resetBtn">重置全部</button>
+    </div>
+  </aside>
+
+  <main class="menu-side">
+    <div class="tab-bar">
+      <button class="tab active" data-tab="veg" id="tabVeg">
+        <span class="dot"></span><span>素食菜单</span><span class="count">6 pax</span>
+      </button>
+      <button class="tab" data-tab="nonveg" id="tabNonveg">
+        <span class="dot"></span><span>非素食菜单</span><span class="count">114 pax</span>
+      </button>
+    </div>
+
+    <section class="menu-panel">
+      <p class="panel-hint">
+        <b>点击菜品</b> → 自动排入左侧下一格（再点一次移除） · <b>拖拽菜品</b> → 放到左侧指定格
+      </p>
+      <div id="menuRoot"></div>
+    </section>
+  </main>
+
+</div>
+
+<iframe name="gasFrame" id="gasFrame"></iframe>
+<form id="gasForm" target="gasFrame" method="POST" style="display:none">
+  <input type="hidden" name="action" id="gasAction" value="">
+  <input type="hidden" name="presetIndex" id="gasPresetIndex" value="">
+  <input type="hidden" name="payload" id="gasPayload" value="">
+</form>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+document.getElementById('gasForm').action = GAS_URL;
+
+const PAX = { total:120, nonveg:114, veg:6 };
+
+const SLOT_TIMES = [
+  '6:30pm','6:30pm','7:30pm','7:55pm','8:20pm',
+  '8:45pm','9:10pm','9:35pm','10:00pm','10:25pm'
+];
+
+/* =========================================================
+   ★★★ 图片替换区 ★★★
+   每个菜名对应一个 base64 字符串。
+   把 '' 替换成 'data:image/png;base64,....' 就会自动显示。
+   ========================================================= */
+const BASE64_IMAGES = {
+  /* ===== 荤素共享 (Both) ===== */
+  'Mocktail':'',
+  'Assorted Dessert':'',
+  'Appetizer + Souvenir':'',
+  'Hot Appetizer':'',
+  'Dessert Sharing Platter':'',
+  'À la carte · 3 Desserts':'',
+
+  /* ===== 非素食 ===== */
+  'Betel Leaf Set（非素食）':'',
+  'Coconut TomYum (Seafood)':'',
+  'Roasted Chicken':'',
+  'Pineapple Fried Rice (Prawn)':'',
+  'Pineapple Fried Rice (Chicken)':'',
+  'Crab Fried Rice':'',
+  'Lime Chili Steam · Grouper':'',
+  'Lime Chili Steam · Siakap':'',
+  'Soy Sauce Steam · Grouper':'',
+  'Soy Sauce Steam · Siakap':'',
+  'Thai Herb Fried · Grouper':'',
+  'Thai Herb Fried · Siakap':'',
+  'Spicy Sour Fried · Grouper':'',
+  'Spicy Sour Fried · Siakap':'',
+  'Sweet Sour Fried · Grouper':'',
+  'Sweet Sour Fried · Siakap':'',
+  'Cabbage Shoot (Salted Fish)':'',
+  'Cabbage Shoot (Stir-Fried)':'',
+  'Fried Kang Kung':'',
+  'Fried Sotong Ring (Salted Ring)':'',
+  'Omelette (Acacia Leaf)':'',
+  'Omelette (Crab)':'',
+  'Green Curry (Chicken)':'',
+  'Holy Basil Eggplant':'',
+  'Holy Basil Mince Chicken':'',
+
+  /* ===== 素食 ===== */
+  'Coconut TomYum (Mushroom)':'',
+  'Coconut Galangal Soup':'',
+  'Grilled Oyster Mushrooms':'',
+  'Fried Mushroom · Salted Egg':'',
+  'Fried Mushroom · Sweet Sour':'',
+  'Vegan Siu Yuk (Oyster Mushroom)':'',
+  'Mushroom Cake Platter':'',
+  'Stir-Fried Kale (芥蓝)':'',
+  'Stir-Fried Cabbage Shoot (菜胆)':'',
+  'Eggplant Tofu':'',
+  'Green Curry (Vegetables)':''
+};
+
+/* =========================================================
+   ★★★ MENU 数据 ★★★
+   顺序 = 你要求的 category 顺序
+   scope: 'veg' | 'nonveg' | 'shared'
+   ========================================================= */
+const MENU = [
+  /* ==================== 共享（Both） ==================== */
+  /* Cocktail Section · Beverage */
+  { id:'shared-cocktail1', cat:'Cocktail Section · Beverage', scope:'shared',
+    emoji:'🍹', color:'#8e44ad',
+    name:'Mocktail', detail:'无酒精鸡尾酒', price:15, servings:1 },
+  /* Cocktail Section · Dessert */
+  { id:'shared-cocktail2', cat:'Cocktail Section · Dessert', scope:'shared',
+    emoji:'🍨', color:'#b3459a',
+    name:'Assorted Dessert', detail:'精选甜点', price:12, servings:1 },
+  /* Appetizer + Souvenier */
+  { id:'shared-app', cat:'Appetizer + Souvenir', scope:'shared',
+    emoji:'🎁', color:'#c9a227',
+    name:'Appetizer + Souvenir', detail:'铝箔纸 · 笔形脆皮卷（芋泥 / 香蕉 / 菜）',
+    price:15, servings:1 },
+  /* Hot Appetizer */
+  { id:'shared-hotapp', cat:'Hot Appetizer', scope:'shared',
+    emoji:'🥟', color:'#d1603d',
+    name:'Hot Appetizer', detail:'4–5 种开胃小吃 · 五颜六色 · 每种 8 个',
+    price:272, servings:8 },
+  /* Dessert */
+  { id:'shared-dessert1', cat:'Dessert', scope:'shared',
+    emoji:'🍮', color:'#c0398a',
+    name:'Dessert Sharing Platter', detail:'甜品拼盘 · 宾客自选 · 不浪费',
+    price:72, servings:8 },
+  { id:'shared-dessert2', cat:'Dessert', scope:'shared',
+    emoji:'🍧', color:'#c0398a',
+    name:'À la carte · 3 Desserts', detail:'3 样甜品一人一份 · 最后才上',
+    price:9, servings:1 },
+
+  /* ==================== 非素食 ==================== */
+  /* Hot Appetizer（非素专属） */
+  { id:'nv-hotapp2', cat:'Hot Appetizer', scope:'nonveg',
+    emoji:'🍃', color:'#d1603d',
+    name:'Betel Leaf Set（非素食）', detail:'有虾米、鱼露',
+    price:32, servings:2 },
+  /* Coconut Soup */
+  { id:'nv-soup', cat:'Coconut Soup', scope:'nonveg',
+    emoji:'🍤', color:'#2f9e8f',
+    name:'Coconut TomYum (Seafood)', detail:'椰子水煮 · 一只 River Prawn',
+    price:58, servings:1 },
+  /* Chicken */
+  { id:'nv-chicken', cat:'Chicken', scope:'nonveg',
+    emoji:'🍗', color:'#b5651d',
+    name:'Roasted Chicken', detail:'招牌之一', price:70, servings:4 },
+  /* Fried Rice */
+  { id:'nv-rice1', cat:'Fried Rice', scope:'nonveg',
+    emoji:'🍍', color:'#b8860b',
+    name:'Pineapple Fried Rice (Prawn)', detail:'招牌之一', price:35, servings:4 },
+  { id:'nv-rice2', cat:'Fried Rice', scope:'nonveg',
+    emoji:'🍍', color:'#b8860b',
+    name:'Pineapple Fried Rice (Chicken)', detail:'招牌之一', price:29, servings:4 },
+  { id:'nv-rice3', cat:'Fried Rice', scope:'nonveg',
+    emoji:'🦀', color:'#b8860b',
+    name:'Crab Fried Rice', detail:'Chef Suggest', price:38, servings:1 },
+  /* Fish */
+  { id:'nv-fish1', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🌶️', color:'#3b82c4',
+    name:'Lime Chili Steam · Grouper', detail:'石斑鱼 1–1.2kg', price:270, servings:4 },
+  { id:'nv-fish2', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🌶️', color:'#3b82c4',
+    name:'Lime Chili Steam · Siakap', detail:'金目鲈', price:80, servings:4 },
+  { id:'nv-fish3', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🐟', color:'#3b82c4',
+    name:'Soy Sauce Steam · Grouper', detail:'石斑鱼', price:270, servings:4 },
+  { id:'nv-fish4', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🐟', color:'#3b82c4',
+    name:'Soy Sauce Steam · Siakap', detail:'金目鲈', price:80, servings:4 },
+  { id:'nv-fish5', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🌿', color:'#3b82c4',
+    name:'Thai Herb Fried · Grouper', detail:'石斑鱼', price:270, servings:4 },
+  { id:'nv-fish6', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🌿', color:'#3b82c4',
+    name:'Thai Herb Fried · Siakap', detail:'金目鲈', price:80, servings:4 },
+  { id:'nv-fish7', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🍋', color:'#3b82c4',
+    name:'Spicy Sour Fried · Grouper', detail:'石斑鱼 1–1.2kg', price:270, servings:4 },
+  { id:'nv-fish8', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🍋', color:'#3b82c4',
+    name:'Spicy Sour Fried · Siakap', detail:'金目鲈', price:80, servings:4 },
+  { id:'nv-fish9', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🍯', color:'#3b82c4',
+    name:'Sweet Sour Fried · Grouper', detail:'石斑鱼', price:270, servings:4 },
+  { id:'nv-fish10', cat:'Fish · 鱼类', scope:'nonveg',
+    emoji:'🍯', color:'#3b82c4',
+    name:'Sweet Sour Fried · Siakap', detail:'金目鲈', price:80, servings:4 },
+  /* Vegetable */
+  { id:'nv-veg1', cat:'Vegetable', scope:'nonveg',
+    emoji:'🥬', color:'#3f9142',
+    name:'Cabbage Shoot (Salted Fish)', detail:'菜心 · 咸鱼', price:28, servings:4 },
+  { id:'nv-veg2', cat:'Vegetable', scope:'nonveg',
+    emoji:'🥬', color:'#3f9142',
+    name:'Cabbage Shoot (Stir-Fried)', detail:'菜心 · 清炒', price:23, servings:4 },
+  { id:'nv-veg3', cat:'Vegetable', scope:'nonveg',
+    emoji:'🌿', color:'#3f9142',
+    name:'Fried Kang Kung', detail:'炒空心菜', price:18, servings:4 },
+  /* Seafood */
+  { id:'nv-seafood', cat:'Seafood', scope:'nonveg',
+    emoji:'🦑', color:'#2c7a9e',
+    name:'Fried Sotong Ring (Salted Ring)', detail:'炸苏东圈', price:48, servings:4 },
+  /* Omelette */
+  { id:'nv-om1', cat:'Omelette', scope:'nonveg',
+    emoji:'🍳', color:'#d9a441',
+    name:'Omelette (Acacia Leaf)', detail:'金合欢叶煎蛋', price:23, servings:4 },
+  { id:'nv-om2', cat:'Omelette', scope:'nonveg',
+    emoji:'🦀', color:'#d9a441',
+    name:'Omelette (Crab)', detail:'含蟹肉', price:48, servings:4 },
+  /* Curry */
+  { id:'nv-curry', cat:'Curry', scope:'nonveg',
+    emoji:'🍛', color:'#c26b1f',
+    name:'Green Curry (Chicken)', detail:'绿咖喱鸡', price:28, servings:4 },
+  /* Holy Basil */
+  { id:'nv-basil1', cat:'Holy Basil · 打抛叶', scope:'nonveg',
+    emoji:'🍆', color:'#4c8c3f',
+    name:'Holy Basil Eggplant', detail:'打抛茄子', price:32, servings:4 },
+  { id:'nv-basil2', cat:'Holy Basil · 打抛叶', scope:'nonveg',
+    emoji:'🌿', color:'#4c8c3f',
+    name:'Holy Basil Mince Chicken', detail:'打抛鸡肉碎', price:23, servings:4 },
+
+  /* ==================== 素食 ==================== */
+  /* Coconut Soup */
+  { id:'v-soup1', cat:'Coconut Soup', scope:'veg',
+    emoji:'🍄', color:'#2f9e8f',
+    name:'Coconut TomYum (Mushroom)', detail:'椰子水 · 两种 mushroom',
+    price:38, servings:1 },
+  { id:'v-soup2', cat:'Coconut Soup', scope:'veg',
+    emoji:'🥣', color:'#2f9e8f',
+    name:'Coconut Galangal Soup', detail:'南姜汤 · 两种 mushroom',
+    price:38, servings:1 },
+  /* Mushroom */
+  { id:'v-mush1', cat:'Mushroom', scope:'veg',
+    emoji:'🍄‍🟫', color:'#8d6e63',
+    name:'Grilled Oyster Mushrooms', detail:'烤杏鲍菇', price:15, servings:2 },
+  { id:'v-mush2', cat:'Mushroom', scope:'veg',
+    emoji:'🍄', color:'#8d6e63',
+    name:'Fried Mushroom · Salted Egg', detail:'咸蛋炸菇', price:23, servings:2 },
+  { id:'v-mush3', cat:'Mushroom', scope:'veg',
+    emoji:'🍄', color:'#8d6e63',
+    name:'Fried Mushroom · Sweet Sour', detail:'酸甜炸菇', price:23, servings:2 },
+  { id:'v-mush4', cat:'Mushroom', scope:'veg',
+    emoji:'🥓', color:'#8d6e63',
+    name:'Vegan Siu Yuk (Oyster Mushroom)', detail:'杏鲍菇做成烧肉的感觉',
+    price:32, servings:2 },
+  { id:'v-mush5', cat:'Mushroom', scope:'veg',
+    emoji:'🥞', color:'#8d6e63',
+    name:'Mushroom Cake Platter', detail:'蘑菇饼拼盘', price:68, servings:4 },
+  /* Fried Rice */
+  { id:'v-rice1', cat:'Fried Rice', scope:'veg',
+    emoji:'🍍', color:'#b8860b',
+    name:'Pineapple Fried Rice (Chicken)', detail:'招牌之一', price:29, servings:4 },
+  /* Vegetable */
+  { id:'v-veg1', cat:'Vegetable', scope:'veg',
+    emoji:'🥬', color:'#3f9142',
+    name:'Stir-Fried Kale (芥蓝)', detail:'清炒芥蓝', price:18, servings:2 },
+  { id:'v-veg2', cat:'Vegetable', scope:'veg',
+    emoji:'🥬', color:'#3f9142',
+    name:'Stir-Fried Cabbage Shoot (菜胆)', detail:'清炒菜胆', price:18, servings:2 },
+  { id:'v-veg3', cat:'Vegetable', scope:'veg',
+    emoji:'🌿', color:'#3f9142',
+    name:'Fried Kang Kung', detail:'炒空心菜', price:18, servings:2 },
+  /* Tofu */
+  { id:'v-tofu', cat:'Tofu', scope:'veg',
+    emoji:'🍆', color:'#a0703d',
+    name:'Eggplant Tofu', detail:'茄子豆腐 · 做成肉的样子', price:32, servings:2 },
+  /* Omelette */
+  { id:'v-om1', cat:'Omelette', scope:'veg',
+    emoji:'🍳', color:'#d9a441',
+    name:'Omelette (Acacia Leaf)', detail:'金合欢叶煎蛋', price:23, servings:4 },
+  /* Curry */
+  { id:'v-curry', cat:'Curry', scope:'veg',
+    emoji:'🍛', color:'#c26b1f',
+    name:'Green Curry (Vegetables)', detail:'绿咖喱蔬菜', price:28, servings:4 },
+  /* Appetizer（预留：等更新后的 xlsx 提供素食 Appetizer 菜品） */
+  /* Dessert（共享的 Dessert 已放在 shared） */
+];
+
+/* =========================================================
+   颜色工具 + 默认 SVG 占位
+   ========================================================= */
+function hexToRgb(hex){
+  hex = String(hex).replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  return [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];
+}
+function lighten(hex,amt){const[r,g,b]=hexToRgb(hex);return `rgb(${Math.round(r+(255-r)*amt)},${Math.round(g+(255-g)*amt)},${Math.round(b+(255-b)*amt)})`;}
+function darken(hex,amt){const[r,g,b]=hexToRgb(hex);const f=1-amt;return `rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;}
+
+function makeDefaultIcon(emoji, color){
+  const c1 = lighten(color, .30);
+  const c2 = darken(color, .38);
+  const svg =
+`<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${c1}"/>
+      <stop offset="100%" stop-color="${c2}"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="220" height="220" rx="24" fill="url(#g)"/>
+  <rect x="10" y="10" width="200" height="200" rx="18" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="6"/>
+  <ellipse cx="82" cy="66" rx="46" ry="30" fill="rgba(255,255,255,0.13)"/>
+  <text x="110" y="110" font-size="112" text-anchor="middle"
+        dominant-baseline="central"
+        font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text>
+</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+MENU.forEach(d => {
+  if (!BASE64_IMAGES[d.name]) BASE64_IMAGES[d.name] = makeDefaultIcon(d.emoji, d.color);
+});
+
+function imgFor(name){ return BASE64_IMAGES[name] || ''; }
+
+/* =========================================================
+   默认 slot 1 / 2 = Mocktail + Assorted Dessert
+   ========================================================= */
+function makeSlotFromDishId(id){
+  const dish = MENU.find(d => d.id === id);
+  if (!dish) return null;
+  return {
+    dishId: dish.id, name: dish.name, emoji: dish.emoji, color: dish.color,
+    price: dish.price, servings: dish.servings, scope: dish.scope
+  };
+}
+function defaultSlots(){
+  return {
+    veg: [
+      makeSlotFromDishId('shared-cocktail1'),
+      makeSlotFromDishId('shared-cocktail2'),
+      null, null, null, null, null, null, null, null
+    ],
+    nonveg: [
+      makeSlotFromDishId('shared-cocktail1'),
+      makeSlotFromDishId('shared-cocktail2'),
+      null, null, null, null, null, null, null, null
+    ]
+  };
+}
+
+const state = {
+  activeTab: 'veg',
+  slots: defaultSlots(),
+  cocktailPax: 80
+};
+
+function fmt(n){ return Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function dishById(id){ return MENU.find(d => d.id === id); }
+function targetTypeOf(dish){
+  if (dish.scope === 'veg') return 'veg';
+  if (dish.scope === 'nonveg') return 'nonveg';
+  return state.activeTab;
+}
+
+/* =========================================================
+   渲染菜单
+   ========================================================= */
+function renderMenu(){
+  const root = document.getElementById('menuRoot');
+  const tab = state.activeTab;
+  const visible = MENU.filter(d => d.scope === tab || d.scope === 'shared');
+
+  /* 保持 MENU 原始顺序来分组 */
+  const cats = []; const seen = {};
+  visible.forEach(d => {
+    if (!seen[d.cat]) { seen[d.cat] = { name:d.cat, color:d.color, dishes:[] }; cats.push(seen[d.cat]); }
+    seen[d.cat].dishes.push(d);
+  });
+
+  let html = '';
+  cats.forEach(cat => {
+    html += `<div class="cat">
+      <div class="cat-head">
+        <span class="cat-dot" style="background:${cat.color};box-shadow:0 0 10px ${cat.color}"></span>
+        <h3>${cat.name}</h3>
+        ${cat.dishes[0].scope === 'shared' ? '<span class="badge">◆ 荤素共享</span>' : ''}
+      </div>
+      <div class="dishes">`;
+    cat.dishes.forEach(d => {
+      const perP = d.price / d.servings;
+      const unit = d.servings > 1 ? d.servings + ' 人份' : '1 人份';
+      const tt = targetTypeOf(d);
+      const placedIdx = state.slots[tt].findIndex(s => s && s.name === d.name);
+      const isPlaced = placedIdx !== -1;
+      html += `
+        <div class="dish ${isPlaced ? 'placed' : ''}" draggable="true" data-dish-id="${d.id}">
+          <div class="ring"><img alt="" src="${imgFor(d.name)}"></div>
+          <div class="name">${d.name}</div>
+          ${d.detail ? `<div class="detail">${d.detail}</div>` : ''}
+          <div class="price">RM ${fmt(d.price)} <em>/ 份 · ${unit}</em></div>
+          <div class="per">≈ RM ${fmt(perP)} / 人</div>
+          ${isPlaced ? `<div class="placed-badge">✓ Slot ${placedIdx + 1}</div>` : ''}
+        </div>`;
+    });
+    html += '</div></div>';
+  });
+  root.innerHTML = html;
+  root.querySelectorAll('.dish').forEach(el => {
+    el.addEventListener('click', () => onDishClick(el.dataset.dishId));
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', el.dataset.dishId);
+      e.dataTransfer.effectAllowed = 'copy';
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  });
+}
+
+/* =========================================================
+   渲染 Slots
+   ========================================================= */
+function buildSlot(type, idx, slot){
+  const el = document.createElement('div');
+  el.className = 'slot ' + (type === 'veg' ? 'veg-slot' : 'nonveg-slot');
+  el.dataset.type = type;
+  el.dataset.idx = idx;
+  const time = SLOT_TIMES[idx];
+
+  if (!slot){
+    el.classList.add('empty');
+    el.innerHTML = `
+      <div class="slot-time">${time}</div>
+      <div class="slot-body"><span class="num">${idx + 1}</span></div>
+    `;
+  } else {
+    el.classList.add('filled');
+    el.innerHTML = `
+      <div class="slot-time">${time}</div>
+      <div class="slot-body">
+        <div class="slot-ring"><img alt="" src="${imgFor(slot.name)}"></div>
+        <div class="slot-name">${slot.name}</div>
+      </div>
+      <span class="slot-remove" title="移除">×</span>
+    `;
+    el.querySelector('.slot-remove').addEventListener('click', e => {
+      e.stopPropagation();
+      state.slots[type][idx] = null;
+      renderAllSlots(); renderMenu(); updateTotal();
+    });
+  }
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    el.classList.remove('drag-over');
+    const dishId = e.dataTransfer.getData('text/plain');
+    if (dishId) placeDish(dishId, type, idx);
+  });
+  return el;
+}
+
+function renderSlotsInto(containerId, type){
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = '';
+  state.slots[type].forEach((slot, idx) => c.appendChild(buildSlot(type, idx, slot)));
+}
+function renderAllSlots(){
+  renderSlotsInto('vegSlots', 'veg');
+  renderSlotsInto('nonvegSlots', 'nonveg');
+}
+
+/* =========================================================
+   点击 / 拖拽
+   ========================================================= */
+function onDishClick(dishId){
+  const dish = dishById(dishId);
+  if (!dish) return;
+  const targetType = targetTypeOf(dish);
+  const existingIdx = state.slots[targetType].findIndex(s => s && s.name === dish.name);
+  if (existingIdx !== -1){
+    state.slots[targetType][existingIdx] = null;
+    renderAllSlots(); renderMenu(); updateTotal();
+    toast(`已移除「${dish.name}」`);
+    return;
+  }
+  const idx = state.slots[targetType].findIndex(s => s === null);
+  if (idx === -1){ toast(`该栏 10 格已满`); return; }
+  placeDish(dishId, targetType, idx);
+}
+
+function placeDish(dishId, type, idx){
+  const dish = dishById(dishId);
+  if (!dish) return;
+  if (dish.scope !== 'shared' && dish.scope !== type){
+    toast(`「${dish.name}」不能放进${type === 'veg' ? '素食' : '非素食'}栏`);
+    return;
+  }
+  const existingIdx = state.slots[type].findIndex(s => s && s.name === dish.name);
+  if (existingIdx !== -1){
+    toast(`「${dish.name}」已在 Slot ${existingIdx + 1}`);
+    return;
+  }
+  state.slots[type][idx] = {
+    dishId: dish.id, name: dish.name, emoji: dish.emoji, color: dish.color,
+    price: dish.price, servings: dish.servings, scope: dish.scope
+  };
+  renderAllSlots(); renderMenu(); updateTotal();
+}
+
+/* =========================================================
+   计价（Cocktail 时段按菜名去重）
+   ========================================================= */
+const grandEl = document.getElementById('grandTotal');
+const subEl   = document.getElementById('totalSub');
+let lastGrand = 0;
+
+function updateTotal(){
+  let vegPerPax = 0, nvPerPax = 0, cocktailPerPaxSum = 0;
+  const cocktailSeen = new Set();
+
+  ['veg','nonveg'].forEach(type => {
+    state.slots[type].forEach((slot, idx) => {
+      if (!slot) return;
+      const perPerson = slot.price / slot.servings;
+      if (idx < 2){
+        if (!cocktailSeen.has(slot.name)){
+          cocktailSeen.add(slot.name);
+          cocktailPerPaxSum += perPerson;
+        }
+      } else {
+        if (type === 'veg') vegPerPax += perPerson;
+        else nvPerPax += perPerson;
+      }
+    });
+  });
+
+  const vegTotal = vegPerPax * PAX.veg;
+  const nvTotal = nvPerPax * PAX.nonveg;
+  const cocktailTotal = cocktailPerPaxSum * state.cocktailPax;
+  const grand = vegTotal + nvTotal + cocktailTotal;
+
+  grandEl.textContent = 'RM ' + fmt(grand);
+  subEl.innerHTML =
+    `非素 <b>RM ${fmt(nvPerPax)}</b> × 114 = <b>RM ${fmt(nvTotal)}</b> · ` +
+    `素食 <b>RM ${fmt(vegPerPax)}</b> × 6 = <b>RM ${fmt(vegTotal)}</b> · ` +
+    `Cocktail Section x ${state.cocktailPax} = <b>RM ${fmt(cocktailTotal)}</b>`;
+
+  if (grand !== lastGrand){
+    lastGrand = grand;
+    grandEl.classList.remove('bump');
+    void grandEl.offsetWidth;
+    grandEl.classList.add('bump');
+  }
+}
+
+/* =========================================================
+   Tabs / Cocktail Pax / Reset
+   ========================================================= */
+document.getElementById('tabVeg').addEventListener('click', () => switchTab('veg'));
+document.getElementById('tabNonveg').addEventListener('click', () => switchTab('nonveg'));
+function switchTab(tab){
+  state.activeTab = tab;
+  document.getElementById('tabVeg').classList.toggle('active', tab === 'veg');
+  document.getElementById('tabNonveg').classList.toggle('active', tab === 'nonveg');
+  renderMenu();
+}
+
+document.getElementById('cocktailPaxInput').addEventListener('input', e => {
+  let v = parseInt(e.target.value, 10);
+  if (isNaN(v) || v < 1) v = 1;
+  if (v > 120) v = 120;
+  state.cocktailPax = v;
+  updateTotal();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('确定要清空所有 slot 吗？')) return;
+  state.slots = defaultSlots();
+  renderAllSlots(); renderMenu(); updateTotal();
+});
+
+/* =========================================================
+   Preset 按钮 0–5
+   ========================================================= */
+const PRESET_TABS = ['Preset 0','Preset 1','Preset 2','Preset 3','Preset 4','Preset 5'];
+function renderPresetButtons(){
+  const bar = document.getElementById('presetBar');
+  bar.innerHTML = PRESET_TABS.map((_, i) =>
+    `<button class="preset-btn" data-preset="${i}">Preset ${i}</button>`
+  ).join('');
+  bar.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => loadPreset(parseInt(btn.dataset.preset)));
+  });
+}
+
+/* =========================================================
+   保存 / 读取 Preset（form + hidden iframe）
+   ========================================================= */
+function getPayload(){
+  return {
+    cocktailPax: state.cocktailPax,
+    totalPrice: lastGrand,
+    vegeSlots: state.slots.veg,
+    nonvegeSlots: state.slots.nonveg,
+    savedAt: new Date().toISOString()
+  };
+}
+
+document.getElementById('savePresetBtn').addEventListener('click', () => {
+  const idx = document.getElementById('presetSelect').value;
+  const payload = JSON.stringify(getPayload());
+  document.getElementById('gasAction').value = 'savePreset';
+  document.getElementById('gasPresetIndex').value = idx;
+  document.getElementById('gasPayload').value = payload;
+  document.getElementById('gasForm').submit();
+  toast('⏳ Saving to Preset ' + idx + '…');
+});
+
+function loadPreset(idx){
+  const btns = document.querySelectorAll('.preset-btn');
+  btns.forEach(b => b.classList.add('loading'));
+  document.getElementById('gasAction').value = 'loadPreset';
+  document.getElementById('gasPresetIndex').value = idx;
+  document.getElementById('gasPayload').value = '';
+  document.getElementById('gasForm').submit();
+  btns.forEach(b => b.classList.remove('active'));
+  btns[idx] && btns[idx].classList.add('active');
+}
+
+window.addEventListener('message', e => {
+  const msg = e.data;
+  if (!msg || typeof msg !== 'object') return;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('loading'));
+  if (msg.type === 'saveResult'){
+    if (msg.data && msg.data.status === 'ok') toast('✅ 已保存到 ' + msg.data.tab);
+    else toast('❌ 保存失败：' + (msg.data && msg.data.error || '未知错误'));
+  }
+  if (msg.type === 'loadResult'){
+    if (msg.data && msg.data.error){ toast('❌ 读取失败：' + msg.data.error); return; }
+    applyPreset(msg.data);
+    toast('✅ 已载入 Preset');
+  }
+});
+
+function applyPreset(data){
+  if (typeof data.cocktailPax === 'number'){
+    state.cocktailPax = data.cocktailPax;
+    document.getElementById('cocktailPaxInput').value = data.cocktailPax;
+  }
+  function restoreSlot(slot){
+    if (!slot || !slot.name) return null;
+    const dish = MENU.find(d => d.name === slot.name);
+    if (!dish) return null;
+    return {
+      dishId: dish.id, name: dish.name, emoji: dish.emoji, color: dish.color,
+      price: dish.price, servings: dish.servings, scope: dish.scope
+    };
+  }
+  state.slots.veg = (data.vegeSlots || []).map(restoreSlot);
+  state.slots.nonveg = (data.nonvegeSlots || []).map(restoreSlot);
+  while (state.slots.veg.length < 10) state.slots.veg.push(null);
+  while (state.slots.nonveg.length < 10) state.slots.nonveg.push(null);
+  state.slots.veg = state.slots.veg.slice(0, 10);
+  state.slots.nonveg = state.slots.nonveg.slice(0, 10);
+  renderAllSlots(); renderMenu(); updateTotal();
+}
+
+/* =========================================================
+   Toast / Details / Sticky
+   ========================================================= */
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+const detailsToggle = document.getElementById('detailsToggle');
+const detailsPanel  = document.getElementById('detailsPanel');
+detailsToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = !detailsPanel.hasAttribute('hidden');
+  if (isOpen){
+    detailsPanel.setAttribute('hidden', '');
+    detailsToggle.classList.remove('open');
+  } else {
+    detailsPanel.removeAttribute('hidden');
+    detailsToggle.classList.add('open');
+  }
+});
+document.addEventListener('click', (e) => {
+  if (detailsPanel.hasAttribute('hidden')) return;
+  if (detailsPanel.contains(e.target)) return;
+  if (detailsToggle.contains(e.target)) return;
+  detailsPanel.setAttribute('hidden', '');
+  detailsToggle.classList.remove('open');
+});
+
+function syncStickyMetrics(){
+  const head = document.querySelector('.sticky-head');
+  if (!head) return;
+  const h = head.offsetHeight;
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+window.addEventListener('resize', syncStickyMetrics);
+window.addEventListener('load', syncStickyMetrics);
+syncStickyMetrics();
+
+/* =========================================================
+   初始化
+   ========================================================= */
+renderPresetButtons();
+renderMenu();
+renderAllSlots();
+updateTotal();
+syncStickyMetrics();
+</script>
+</body>
+</html>
